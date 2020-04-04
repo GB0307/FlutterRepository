@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 
-import '../Repository.dart';
+import '../index.dart';
 
 enum RepositoryState { Loaded, Loading, Not_Loaded }
 
@@ -66,8 +66,24 @@ abstract class DatabaseRepository<T extends DBModel> {
     return _data;
   }
 
+  void changeSubPath(String newSubPath){
+    if (dbListener != null) {
+      dbListener.cancel();
+      dbListener = null;
+    }
+    data = null;
+    controller.add(null);
+    secondaryPath = newSubPath;
+
+    if(autoInit){
+      if(enableSync) setListeners();
+      else fetchData();
+    }
+  }
+
   void setListeners() {
     /// This method set all listeners for database Sync
+    enableSync = true;
     state = RepositoryState.Loading;
     dbListener = db.reference().child(fullPath).onValue.listen((event) {
       T model = mapToModel((event.snapshot.value ?? {}) as Map);
@@ -87,8 +103,10 @@ abstract class DatabaseRepository<T extends DBModel> {
   }
 
   void dispose() {
-    dbListener.cancel();
-    dbListener = null;
+    if (dbListener != null) {
+      dbListener.cancel();
+      dbListener = null;
+    }
     data = null;
     controller.close();
   }
