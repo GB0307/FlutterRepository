@@ -8,9 +8,9 @@ enum RepositoryState { Loaded, Loading, Not_Loaded }
 
 abstract class DatabaseRepository<T extends DBModel> {
   DatabaseRepository(this.path,
-      {this.enableSync = false, db, this.autoInit = true, subPath})
+      {this.enableSync = false, db, this.autoInit = true, subPath, this.useSubPath=false})
       : this.db = db ?? FirebaseDatabase.instance,
-        this.secondaryPath = subPath ?? "" {
+        this.secondaryPath = subPath ?? ""{
     if (autoInit != null && autoInit) {
       onInit();
     }
@@ -21,14 +21,15 @@ abstract class DatabaseRepository<T extends DBModel> {
   bool autoInit = true;
   RepositoryState state = RepositoryState.Not_Loaded;
   bool get listenerSet => dbListener != null;
+  final bool useSubPath;
 
   // Database Variables
   final String path;
   @protected
   String secondaryPath;
   String get fullPath => path[path.length - 1] == "/"
-      ? path + secondaryPath
-      : path + "/" + secondaryPath;
+      ? path + (useSubPath ? secondaryPath : "")
+      : path + "/" + (useSubPath ? secondaryPath : "");
   String get subPath => secondaryPath;
   @protected
   FirebaseDatabase db;
@@ -58,15 +59,16 @@ abstract class DatabaseRepository<T extends DBModel> {
     data = null;
     controller.add(null);
 
-    Map val = (await db.reference().child(fullPath).once()).value as Map;
+    Map val = ((await db.reference().child(fullPath).once()).value ?? {})  as Map;
 
     T _data = mapToModel(val);
 
-    setData(_data);
+    setData(val.length > 0? _data : null);
     return _data;
   }
 
-  void changeSubPath(String newSubPath){
+  void changeSubPath(String newSubPath) {
+    if (!useSubPath) throw ErrorHint("not configured to use subPath");
     if (dbListener != null) {
       dbListener.cancel();
       dbListener = null;
@@ -75,9 +77,11 @@ abstract class DatabaseRepository<T extends DBModel> {
     controller.add(null);
     secondaryPath = newSubPath;
 
-    if(autoInit){
-      if(enableSync) setListeners();
-      else fetchData();
+    if (!useSubPath || subPath != "" || subPath != null) if (autoInit) {
+      if (enableSync)
+        setListeners();
+      else
+        fetchData();
     }
   }
 
@@ -85,9 +89,12 @@ abstract class DatabaseRepository<T extends DBModel> {
     /// This method set all listeners for database Sync
     enableSync = true;
     state = RepositoryState.Loading;
+    if(useSubPath && (subPath == "" || subPath == null)) return;
     dbListener = db.reference().child(fullPath).onValue.listen((event) {
-      T model = mapToModel((event.snapshot.value ?? {}) as Map);
-      setData(model);
+      Map map = (event.snapshot.value ?? {}) as Map;
+      
+      T model = mapToModel(map);
+      setData(map.length > 0? model : null);
     });
   }
 
@@ -112,6 +119,36 @@ abstract class DatabaseRepository<T extends DBModel> {
   }
 
   // App Output
-  //TODO: Implement set data method
-  Future<String> update(Map data, {String subpath = ""}) {}
+  Future<String> update(DBModel data) async {
+    /// Is recomended to update data for every object
+    
+
+    try {
+      await db
+          .reference()
+          .child(data.path)
+          .child(data.key)
+          .update(data.toMap());
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<String> deleteChild(String key) async {
+    /// Deletes the data 'key' on the full path\
+    try {
+      await db.reference().child(fullPath).child(key).remove();
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<String> deleteData(DBModel data) async {
+    /// Deletes the data 'key' on the full path\
+    try {
+      await db.reference().child(data.path).child(data.key).remove();
+    } catch (e) {
+      return e.toString();
+    }
+  }
 }

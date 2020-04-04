@@ -4,14 +4,15 @@ typedef SortFunction<T> = int Function(T m1, T m2);
 
 abstract class DBModel {
   final String key;
+  final String path;
   final Map rawData;
 
-  DBModel.fromMap(this.key, this.rawData) {
+  DBModel.fromMap(this.path, this.key, this.rawData) {
     /// Creates a DBModel from a database Map
     setData();
   }
 
-  DBModel.dummyData(this.key, this.rawData);
+  DBModel.dummyData(this.path, this.key): rawData={};
 
   Map<String, dynamic> toMap();
 
@@ -22,9 +23,9 @@ abstract class DBModel {
 }
 
 abstract class DBModelList<T extends DBModel> extends DBModel {
-  DBModelList.dummyData(String key, Map rawData)
-      : super.dummyData(key, rawData);
-  DBModelList.fromMap(String key, Map rawData) : super.fromMap(key, rawData);
+  DBModelList.dummyData(String path, String key, Map rawData)
+      : super.dummyData(path, key);
+  DBModelList.fromMap(String path, String key, Map rawData) : super.fromMap(path, key, rawData);
 
   @protected
   Map<String, T> data = {};
@@ -33,6 +34,7 @@ abstract class DBModelList<T extends DBModel> extends DBModel {
 
   @override
   void setData() {
+    /// for multiple items, set the subpath
     rawData.forEach((key, value) {
       data[key] = newModel(key, value);
     });
@@ -61,14 +63,14 @@ abstract class DBModelList<T extends DBModel> extends DBModel {
 }
 
 abstract class SortedDBModelList<T extends DBModel> extends DBModelList {
-  SortedDBModelList.dummyData(String key, Map rawData,
+  SortedDBModelList.dummyData(String path, String key, Map rawData,
       {this.sortFunction, this.inverse = false})
-      : super.dummyData(key, rawData) {
+      : super.dummyData(path, key, rawData) {
     sortKeys();
   }
-  SortedDBModelList.fromMap(String key, Map rawData,
+  SortedDBModelList.fromMap(String path, String key, Map rawData,
       {this.sortFunction, this.inverse = false})
-      : super.fromMap(key, rawData) {
+      : super.fromMap(path, key, rawData) {
     sortKeys();
   }
 
