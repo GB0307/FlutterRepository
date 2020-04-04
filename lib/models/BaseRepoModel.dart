@@ -41,6 +41,15 @@ abstract class DBModelList<T extends DBModel> extends DBModel {
   @protected
   T newModel(String key, Map data);
 
+  @override
+  Map<String, dynamic> toMap() {
+    var map = <String, dynamic>{};
+    data.keys.forEach((key) {
+      map[key] = data[key].toMap();
+    });
+    return map;
+  }
+
   //Operators
   T operator [](dynamic key) {
     if (key is String) {
@@ -52,11 +61,13 @@ abstract class DBModelList<T extends DBModel> extends DBModel {
 }
 
 abstract class SortedDBModelList<T extends DBModel> extends DBModelList {
-  SortedDBModelList.dummyData(String key, Map rawData, {this.sortFunction, this.inverse=false})
+  SortedDBModelList.dummyData(String key, Map rawData,
+      {this.sortFunction, this.inverse = false})
       : super.dummyData(key, rawData) {
     sortKeys();
   }
-  SortedDBModelList.fromMap(String key, Map rawData, {this.sortFunction, this.inverse=false})
+  SortedDBModelList.fromMap(String key, Map rawData,
+      {this.sortFunction, this.inverse = false})
       : super.fromMap(key, rawData) {
     sortKeys();
   }
@@ -76,7 +87,7 @@ abstract class SortedDBModelList<T extends DBModel> extends DBModelList {
     } else {
       sortedKeys = (data ?? {}).keys.toList()..sort((a, b) => a.compareTo(b));
     }
-    if(inverse) sortedKeys = sortedKeys.reversed.toList();
+    if (inverse) sortedKeys = sortedKeys.reversed.toList();
   }
 
   T operator [](dynamic key) {
