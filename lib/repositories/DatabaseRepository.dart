@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 
-import '../Repository.dart';
+import '../flutter_repository.dart';
 
 enum RepositoryState { Loaded, Loading, Not_Loaded }
 
@@ -152,13 +152,13 @@ abstract class DatabaseRepository<T extends DBModel> {
   }
 
   // App Output
-  Future<String> update(DBModel data, [String customKey]) async {
+  Future<String> update(DBModel data) async {
     /// Is recomended to update data for every object
     try {
       await db
           .reference()
           .child(data.path)
-          .child(customKey ?? data.key ?? "")
+          .child(data.key )
           .update(data.toMap());
           return null;
     } catch (e) {
