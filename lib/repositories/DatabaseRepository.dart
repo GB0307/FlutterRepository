@@ -152,13 +152,13 @@ abstract class DatabaseRepository<T extends DBModel> {
   }
 
   // App Output
-  Future<String> update(DBModel data) async {
+  Future<String> update(DBModel data, [String customKey]) async {
     /// Is recomended to update data for every object
     try {
       await db
           .reference()
           .child(data.path)
-          .child(data.key)
+          .child(customKey ?? data.key ?? "")
           .update(data.toMap());
           return null;
     } catch (e) {
