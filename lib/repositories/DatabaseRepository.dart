@@ -8,9 +8,13 @@ enum RepositoryState { Loaded, Loading, Not_Loaded }
 
 abstract class DatabaseRepository<T extends DBModel> {
   DatabaseRepository(this.path,
-      {this.enableSync = false, db, this.autoInit = true, subPath, this.useSubPath=false})
+      {this.enableSync = false,
+      db,
+      this.autoInit = true,
+      subPath,
+      this.useSubPath = false})
       : this.db = db ?? FirebaseDatabase.instance,
-        this.secondaryPath = subPath ?? ""{
+        this.secondaryPath = subPath ?? "" {
     if (autoInit != null && autoInit) {
       onInit();
     }
@@ -34,6 +38,7 @@ abstract class DatabaseRepository<T extends DBModel> {
   @protected
   FirebaseDatabase db;
   StreamSubscription<Event> dbListener;
+  String _listenerSetTo;
 
   // Data Variables
   @protected
@@ -59,25 +64,39 @@ abstract class DatabaseRepository<T extends DBModel> {
     data = null;
     controller.add(null);
 
-    Map val = ((await db.reference().child(fullPath).once()).value ?? {})  as Map;
+    Map val =
+        ((await db.reference().child(fullPath).once()).value ?? {}) as Map;
 
     T _data = mapToModel(val);
 
-    setData(val.length > 0? _data : null);
+    setData(val.length > 0 ? _data : null);
     return _data;
   }
 
   void changeSubPath(String newSubPath) {
+    //print("CHANGING SUBPATH");
+
     if (!useSubPath) throw ErrorHint("not configured to use subPath");
+    if (newSubPath == subPath) {
+      //print("SAME SUBPATH");
+      return null;
+    }
+
     if (dbListener != null) {
       dbListener.cancel();
       dbListener = null;
     }
-    data = null;
-    controller.add(null);
-    secondaryPath = newSubPath;
 
-    if (!useSubPath || subPath != "" || subPath != null) if (autoInit) {
+    data = null;
+    secondaryPath = newSubPath;
+    _listenerSetTo = null;
+
+    if(subPath == "" || subPath == null) {
+      controller.add(null);
+      return;
+    } 
+
+    if (autoInit) {
       if (enableSync)
         setListeners();
       else
@@ -87,14 +106,27 @@ abstract class DatabaseRepository<T extends DBModel> {
 
   void setListeners() {
     /// This method set all listeners for database Sync
-    enableSync = true;
+    //print("Set Listener Called");
+    //print(
+    //    (_listenerSetTo == null ? "null" : _listenerSetTo) + "  -  " + subPath);
     state = RepositoryState.Loading;
-    if(useSubPath && (subPath == "" || subPath == null)) return;
+    if (useSubPath && (subPath == "" || subPath == null)) return null;
+    if (_listenerSetTo == subPath) return null;
+    if (dbListener != null) {
+      //print("nulling listener");
+      dbListener.cancel();
+      dbListener = null;
+    }
+    //print("setting listener");
+    _listenerSetTo = subPath;
     dbListener = db.reference().child(fullPath).onValue.listen((event) {
+      //print("Data received on repository " + (event.snapshot.value ?? {}).toString());
       Map map = (event.snapshot.value ?? {}) as Map;
-      
+
+      //print("RECEIVED: " + map.toString());
+
       T model = mapToModel(map);
-      setData(map.length > 0? model : null);
+      setData(map.length > 0 ? model : null);
     });
   }
 
@@ -116,19 +148,19 @@ abstract class DatabaseRepository<T extends DBModel> {
     }
     data = null;
     controller.close();
+    _listenerSetTo = null;
   }
 
   // App Output
   Future<String> update(DBModel data) async {
     /// Is recomended to update data for every object
-    
-
     try {
       await db
           .reference()
           .child(data.path)
           .child(data.key)
           .update(data.toMap());
+          return null;
     } catch (e) {
       return e.toString();
     }
@@ -138,6 +170,7 @@ abstract class DatabaseRepository<T extends DBModel> {
     /// Deletes the data 'key' on the full path\
     try {
       await db.reference().child(fullPath).child(key).remove();
+      return null;
     } catch (e) {
       return e.toString();
     }
@@ -147,6 +180,7 @@ abstract class DatabaseRepository<T extends DBModel> {
     /// Deletes the data 'key' on the full path\
     try {
       await db.reference().child(data.path).child(data.key).remove();
+      return null;
     } catch (e) {
       return e.toString();
     }
