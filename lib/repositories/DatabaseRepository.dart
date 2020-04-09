@@ -6,7 +6,17 @@ import '../flutter_repository.dart';
 
 enum RepositoryState { Loaded, Loading, Not_Loaded }
 
+/// Basic repository class.
+///
+/// Extend it to create a repository for your models.
 abstract class DatabaseRepository<T extends DBModel> {
+  /// Repository constructor
+  ///
+  /// [path] is the database path where the repository will fetch the data.
+  /// set [enableSync] to `true` if you need to update your data to be in sync with the database.
+  /// set [autoInit] to false if you want to initialize the listeners of fetch the data manually.
+  /// set [useSubpath] if you have a list of items in the database but will fetch only one at once.
+  /// [subPath] is the path that will be fetched if [useSubPath] is `true`.
   DatabaseRepository(this.path,
       {this.enableSync = false,
       db,
@@ -24,6 +34,8 @@ abstract class DatabaseRepository<T extends DBModel> {
   bool enableSync = false;
   bool autoInit = true;
   RepositoryState state = RepositoryState.Not_Loaded;
+
+  /// Whether the listener is set or not
   bool get listenerSet => dbListener != null;
   final bool useSubPath;
 
@@ -31,6 +43,8 @@ abstract class DatabaseRepository<T extends DBModel> {
   final String path;
   @protected
   String secondaryPath;
+
+  /// Full database path ([path]/[subPath])
   String get fullPath => path[path.length - 1] == "/"
       ? path + (useSubPath ? secondaryPath : "")
       : path + "/" + (useSubPath ? secondaryPath : "");
@@ -43,11 +57,15 @@ abstract class DatabaseRepository<T extends DBModel> {
   // Data Variables
   @protected
   T data;
+
+  /// Get the current model in the repository.
   T get currentData => data;
 
   // Stream Variables
   @protected
   StreamController<T> controller = StreamController.broadcast();
+
+  /// Get a stream of models.
   Stream<T> get stream => controller.stream;
 
   void onInit() {
@@ -58,6 +76,9 @@ abstract class DatabaseRepository<T extends DBModel> {
       fetchData();
   }
 
+  /// Fetch the data
+  ///
+  /// It ignores the current model and fetch a new one.
   Future<T> fetchData() async {
     /// Use the method to get the database data once, ignoring any cached data
     state = RepositoryState.Loading;
@@ -73,6 +94,11 @@ abstract class DatabaseRepository<T extends DBModel> {
     return _data;
   }
 
+  /// Changes the [subPath].
+  ///
+  /// It will set the [currentData] to `null` and retrieve a new data if [autoInit] is enabled.
+  /// If the [newSubPath] is `null` or empty, it will just remove the currentModel and remove every
+  /// database listener.
   void changeSubPath(String newSubPath) {
     //print("CHANGING SUBPATH");
 
@@ -91,10 +117,10 @@ abstract class DatabaseRepository<T extends DBModel> {
     secondaryPath = newSubPath;
     _listenerSetTo = null;
 
-    if(subPath == "" || subPath == null) {
+    if (subPath == "" || subPath == null) {
       controller.add(null);
       return;
-    } 
+    }
 
     if (autoInit) {
       if (enableSync)
@@ -104,8 +130,8 @@ abstract class DatabaseRepository<T extends DBModel> {
     }
   }
 
+  /// This method set all listeners for database Sync.
   void setListeners() {
-    /// This method set all listeners for database Sync
     //print("Set Listener Called");
     //print(
     //    (_listenerSetTo == null ? "null" : _listenerSetTo) + "  -  " + subPath);
@@ -151,23 +177,22 @@ abstract class DatabaseRepository<T extends DBModel> {
     _listenerSetTo = null;
   }
 
-  // App Output
+  /// Update [data] in the database.
   Future<String> update(DBModel data) async {
-    /// Is recomended to update data for every object
     try {
       await db
           .reference()
           .child(data.path)
-          .child(data.key )
+          .child(data.key)
           .update(data.toMap());
-          return null;
+      return null;
     } catch (e) {
       return e.toString();
     }
   }
 
+  /// Deletes the data [key] on the full path.
   Future<String> deleteChild(String key) async {
-    /// Deletes the data 'key' on the full path\
     try {
       await db.reference().child(fullPath).child(key).remove();
       return null;
@@ -176,7 +201,8 @@ abstract class DatabaseRepository<T extends DBModel> {
     }
   }
 
-  Future<String> deleteData(DBModel data) async {
+  /// Deletes the [model] from the database.
+  Future<String> deleteData(DBModel model) async {
     /// Deletes the data 'key' on the full path\
     try {
       await db.reference().child(data.path).child(data.key).remove();
