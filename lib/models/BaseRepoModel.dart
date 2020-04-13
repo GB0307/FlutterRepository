@@ -107,6 +107,20 @@ abstract class DBModelList<T extends DBModel> extends DBModel {
       return items[key];
     }
   }
+
+  @override
+  Future<bool> validateModel() async {
+    var futures = <Future<bool>>[];
+    data.forEach((k, v) {
+      futures.add(v.validateModel());
+    });
+    var results = await Future.wait(futures);
+
+    if (results.contains(false))
+      return false;
+    else
+      return true;
+  }
 }
 
 /// SortedDBModelList sort the data from the database, so you have an ordered list.
@@ -158,19 +172,5 @@ abstract class SortedDBModelList<T extends DBModel> extends DBModelList {
     } else if (key is int) {
       return data[sortedKeys[key]];
     }
-  }
-
-  @override
-  Future<bool> validateModel() async {
-    var futures = <Future<bool>>[];
-    data.forEach((k, v) {
-      futures.add(v.validateModel());
-    });
-    var results = await Future.wait(futures);
-
-    if (results.contains(false))
-      return false;
-    else
-      return true;
   }
 }
