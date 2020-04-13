@@ -34,6 +34,8 @@ abstract class DBModel {
   /// retrieved from the database.
   Map<String, dynamic> toMap();
 
+  Future<bool> validateModel();
+
   @protected
 
   /// Converts a map into a set of Variables.
@@ -130,6 +132,7 @@ abstract class SortedDBModelList<T extends DBModel> extends DBModelList {
   SortFunction<T> sortFunction;
 
   @protected
+
   /// Whether the data is inverted or not.
   bool inverse;
 
@@ -155,5 +158,19 @@ abstract class SortedDBModelList<T extends DBModel> extends DBModelList {
     } else if (key is int) {
       return data[sortedKeys[key]];
     }
+  }
+
+  @override
+  Future<bool> validateModel() async {
+    var futures = <Future<bool>>[];
+    data.forEach((k, v) {
+      futures.add(v.validateModel());
+    });
+    var results = await Future.wait(futures);
+
+    if (results.contains(false))
+      return false;
+    else
+      return true;
   }
 }

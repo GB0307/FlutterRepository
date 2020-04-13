@@ -179,16 +179,17 @@ abstract class DatabaseRepository<T extends DBModel> {
 
   /// Update [data] in the database.
   Future<String> update(DBModel data) async {
-    try {
-      await db
-          .reference()
-          .child(data.path)
-          .child(data.key)
-          .update(data.toMap());
-      return null;
-    } catch (e) {
-      return e.toString();
-    }
+    if (!await data.validateModel()) throw "INVALID MODEL";
+      try {
+        await db
+            .reference()
+            .child(data.path)
+            .child(data.key)
+            .update(data.toMap());
+        return null;
+      } catch (e) {
+        return e.toString();
+      }
   }
 
   /// Deletes the data [key] on the full path.
