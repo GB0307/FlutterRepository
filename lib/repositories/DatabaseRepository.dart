@@ -180,36 +180,36 @@ abstract class DatabaseRepository<T extends DBModel> {
   /// Update [data] in the database.
   Future<String> update(DBModel data) async {
     if (!data.validateModel()) throw "INVALID MODEL";
-      try {
-        await db
-            .reference()
-            .child(data.path)
-            .child(data.key)
-            .update(data.toMap());
-        return null;
-      } catch (e) {
-        return e.toString();
-      }
-  }
-
-  /// Deletes the data [key] on the full path.
-  Future<String> deleteChild(String key) async {
     try {
-      await db.reference().child(fullPath).child(key).remove();
+      await db
+          .reference()
+          .child(data.path)
+          .child(data.key)
+          .update(data.toMap());
       return null;
     } catch (e) {
       return e.toString();
     }
   }
 
+  /// Deletes the data [key] on the full path.
+  Future<RepositoryError> deleteChild(String key) async {
+    try {
+      await db.reference().child(fullPath).child(key).remove();
+      return null;
+    } catch (e) {
+      return RepositoryError.defaultError(e);
+    }
+  }
+
   /// Deletes the [model] from the database.
-  Future<String> deleteData(DBModel model) async {
+  Future<RepositoryError> deleteData(DBModel model) async {
     /// Deletes the data 'key' on the full path\
     try {
       await db.reference().child(data.path).child(data.key).remove();
       return null;
     } catch (e) {
-      return e.toString();
+      return RepositoryError.defaultError(e);
     }
   }
 }
