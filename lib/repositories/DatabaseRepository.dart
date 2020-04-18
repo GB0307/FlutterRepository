@@ -179,7 +179,7 @@ abstract class DatabaseRepository<T extends DBModel> {
 
   /// Update [data] in the database.
   Future<String> update(DBModel data) async {
-    if (!await data.validateModel()) throw "INVALID MODEL";
+    if (!data.validateModel()) throw "INVALID MODEL";
       try {
         await db
             .reference()

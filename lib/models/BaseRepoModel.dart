@@ -28,13 +28,15 @@ abstract class DBModel {
   /// a Dummy model to test it.
   DBModel.dummyData(this.path, this.key) : rawData = {};
 
+  DBModel(this.path, this.key) : rawData = {};
+
   /// Get all of your variables and turn it in a map.
   ///
   /// For consistency, it's important to keep the same scheme from the data
   /// retrieved from the database.
   Map<String, dynamic> toMap();
 
-  Future<bool> validateModel();
+  bool validateModel();
 
   @protected
 
@@ -109,17 +111,12 @@ abstract class DBModelList<T extends DBModel> extends DBModel {
   }
 
   @override
-  Future<bool> validateModel() async {
-    var futures = <Future<bool>>[];
+  bool validateModel() {
+    var r = true;
     data.forEach((k, v) {
-      futures.add(v.validateModel());
+      if (r && !v.validateModel()) r = false;
     });
-    var results = await Future.wait(futures);
-
-    if (results.contains(false))
-      return false;
-    else
-      return true;
+    return r;
   }
 }
 
