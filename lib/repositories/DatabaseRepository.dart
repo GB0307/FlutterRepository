@@ -178,7 +178,7 @@ abstract class DatabaseRepository<T extends DBModel> {
   }
 
   /// Update [data] in the database.
-  Future<String> update(DBModel data) async {
+  Future<RepositoryError> update(DBModel data) async {
     if (!data.validateModel()) throw "INVALID MODEL";
     try {
       await db
@@ -188,7 +188,7 @@ abstract class DatabaseRepository<T extends DBModel> {
           .update(data.toMap());
       return null;
     } catch (e) {
-      return e.toString();
+      return RepositoryError.defaultError(e);
     }
   }
 
